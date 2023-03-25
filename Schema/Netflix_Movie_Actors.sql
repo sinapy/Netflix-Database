@@ -1,5 +1,6 @@
 CREATE TABLE NETFLIX_MOVIE_ACTORS (
     MovieId NUMBER,
     ActorId NUMBER,
-
+    CONSTRAINT FK_MovieActors_Movies FOREIGN KEY (MovieId) REFERENCES NETFLIX_MOVIE(MovieId),
+    CONSTRAINT FK_MovieActors_Actors Foreign Key (ActorId) REFERENCES NETFLIX_ACTOR(ActorId)
 )

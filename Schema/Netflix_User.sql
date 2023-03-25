@@ -1,5 +1,5 @@
 CREATE TABLE USER(
-    userId NUMBER PRIMARY KEY ,
+    userId NUMBER PRIMARY KEY,
     firstName VARCHAR2(30),
     lastName VARCHAR2(30),
     emailAddress VARCHAR2(100),

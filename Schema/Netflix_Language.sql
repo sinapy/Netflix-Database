@@ -1,4 +1,4 @@
 CREATE TABLE language (
   languageID NUMBER(10) PRIMARY KEY,
-  name VARCHAR2
+  name VARCHAR2(30)
 )
