@@ -1,0 +1,8 @@
+CREATE TABLE Netflix_Episodes (
+    EpisodeId NUMBER,
+    TVShowId NUMBER,
+    EpisodeDescription VARCHAR2(500),
+    SeasonNumber NUMBER,
+    CONSTRAINT PK_EPISODE_TVSHOW PRIMARY KEY (EpisodeId, TVShowId),
+    CONSTRAINT FK_TVSHOW_EPISODES FOREIGN KEY (TVShowId) REFERENCES TVShows(TVShowId)
+)
