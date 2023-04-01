@@ -1,5 +1,5 @@
 CREATE TABLE Netflix_TVSHOW (
     TVShowId NUMBER PRIMARY KEY,
     TVShowName VARCHAR2(50),
-    TVShowDescription VARCHAR2(400),
+    TVShowDescription VARCHAR2(400)
 )
