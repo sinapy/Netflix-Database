@@ -9,6 +9,8 @@ DROP TABLE Netflix_TVSHOW CASCADE CONSTRAINTS;
 DROP TABLE NETFLIX_USER CASCADE CONSTRAINTS;
 DROP TABLE netflix_movie_user_reaction CASCADE CONSTRAINTS;
 DROP TABLE Netflix_Episodes CASCADE CONSTRAINTS;
+DROP TABLE Netflix_TVSHOW_user_reaction CASCADE CONSTRAINTS;
+DROP TABLE NETFLIX_TVSHOWEPISODE_ACTORS CASCADE CONSTRAINTS;
 
 DROP SEQUENCE actor_seq ;
 Drop SEQUENCE language_seq;
@@ -68,7 +70,9 @@ CREATE TABLE netflix_reactions (
 CREATE TABLE Netflix_TVSHOW (
     TVShowId NUMBER PRIMARY KEY,
     TVShowName VARCHAR2(50),
-    TVShowDescription VARCHAR2(400)
+    TVShowDescription VARCHAR2(400),
+    genreId NUMBER,
+    CONSTRAINT FK_Netflix_TvShow_Genre FOREIGN KEY (genreId) REFERENCES Netflix_Genre(genreId)
 );
 
 CREATE TABLE NETFLIX_USER (
@@ -103,6 +107,24 @@ CREATE TABLE Netflix_Episodes (
     CONSTRAINT FK_TVSHOW_EPISODES FOREIGN KEY (TVShowId) REFERENCES Netflix_TVSHOW(TVShowId)
 );
 
+CREATE TABLE Netflix_TVSHOW_user_reaction (
+    TVshowId NUMBER(10),
+    reactionID Number(10),
+    userId NUMBER(10),
+    CONSTRAINT FK_tvshowId_tvshow_TVSHOW FOREIGN KEY (TVshowId) REFERENCES Netflix_TVSHOW(TVShowId),
+    CONSTRAINT FK_reactionID_reaction_TVSHOW FOREIGN KEY (reactionID) REFERENCES netflix_reactions(ReactionID),
+    CONSTRAINT FK_userID_reaction_TVSHOW_user FOREIGN KEY (userID) REFERENCES NETFLIX_USER(userId)
+);
+
+CREATE TABLE Netflix_TVShowEpisode_actors (
+    TVshowId NUMBER,
+    EpisodeId Number,
+    ActorId NUMBER,
+    CONSTRAINT FK_actors_TvShow FOREIGN KEY (TVshowId, EpisodeId) REFERENCES Netflix_Episodes(TVShowId, EpisodeId),
+    CONSTRAINT FK_actors_Actors FOREIGN KEY (ActorId) REFERENCES Netflix_Actor(ActorId)
+);
+
+
 /*SELECT * FROM Netflix_Movie;
 SELECT * FROM Netflix_Actor;
 SELECT * FROM netflix_language;
@@ -114,6 +136,9 @@ SELECT * FROM Netflix_TVSHOW;
 SELECT * FROM NETFLIX_USER;
 SELECT * FROM netflix_movie_user_reaction;
 SELECT * FROM Netflix_Episodes;*/
+
+-- procedures
+-- add an actor to a movie based on actor's name
 
 -- CREATE TRIGGERS
 --trigger 2
@@ -216,6 +241,8 @@ INSERT INTO Netflix_Genre (genreId, genreName)
 VALUES (genre_seq.NEXTVAL, 'Horror');
 INSERT INTO Netflix_Genre (genreId, genreName)
 VALUES (genre_seq.NEXTVAL, 'Romance');
+INSERT INTO NETFLIX_GENRE (genreId, genreName)
+VALUES (genre_seq.nextval, 'Science-fiction');
 
 --insert sample data to netflix_movie
 
@@ -263,29 +290,31 @@ VALUES (1, 'Like');
 INSERT INTO netflix_reactions (ReactionID, name)
 VALUES (2, 'Dislike');
 
+SELECT * FROM NETFLIX_GENRE;
+
 --insert sample data to Netflix_TVSHOW
 CREATE SEQUENCE tvshow_id_seq START WITH 1 INCREMENT BY 1;
-INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'Stranger Things', 'A group of friends discover supernatural mysteries in their small town.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'Stranger Things', 'A group of friends discover supernatural mysteries in their small town.', 3);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'The Crown', 'A historical drama about the reign of Queen Elizabeth II.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'The Crown', 'A historical drama about the reign of Queen Elizabeth II.', 3);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'Narcos', 'A crime drama based on the rise of the drug trade in Colombia.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'Narcos', 'A crime drama based on the rise of the drug trade in Colombia.', 4);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'Black Mirror', 'A science-fiction anthology series exploring the dark side of technology.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'Black Mirror', 'A science-fiction anthology series exploring the dark side of technology.', 6);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'Breaking Bad', 'A high school chemistry teacher turns to cooking meth to provide for his family.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'Breaking Bad', 'A high school chemistry teacher turns to cooking meth to provide for his family.', 1);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'The Office', 'A mockumentary-style sitcom about the daily lives of office employees.');
-    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
+    (tvshow_id_seq.NEXTVAL, 'The Office', 'A mockumentary-style sitcom about the daily lives of office employees.', 2);
+    INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription, genreId)
 VALUES
-    (tvshow_id_seq.NEXTVAL, 'Game of Thrones', 'A fantasy drama based on the novels by George R.R. Martin.');
+    (tvshow_id_seq.NEXTVAL, 'Game of Thrones', 'A fantasy drama based on the novels by George R.R. Martin.', 3);
     INSERT INTO Netflix_TVSHOW (TVShowId, TVShowName, TVShowDescription)
 VALUES
     (tvshow_id_seq.NEXTVAL, 'Friends', 'A sitcom following the lives of six friends in New York City.');
@@ -373,6 +402,11 @@ VALUES
 /*DELETE FROM Netflix_Movie
 WHERE MovieId = 7;*/
 
+
+-- adding to netflix_tvshow_user_reaction
+insert into NETFLIX_TVSHOWEPISODE_ACTORS (TVshowId, EpisodeId, ActorId) VALUES (1, 1, 2);
+insert into NETFLIX_TVSHOWEPISODE_ACTORS (TVshowId, EpisodeId, ActorId) VALUES (1, 1, 3);
+insert into NETFLIX_TVSHOWEPISODE_ACTORS (TVshowId, EpisodeId, ActorId) VALUES (1, 1, 4);
 
 -- Creating Indexes
 
