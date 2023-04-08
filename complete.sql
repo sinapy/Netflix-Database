@@ -429,10 +429,11 @@ CREATE UNIQUE INDEX movie_genre_index
 Select * from netflix_movie_genre a where a.movieid = 2;
 
 
--- Create a procedure that takes two strings and inserts them into the database
+
+
+-- Create a procedure that takes an actor and a movie name and inserts them into the netflix_movie_actor table
 CREATE OR REPLACE PROCEDURE insert_actor_to_movie (actor_name IN VARCHAR2, movie_name IN VARCHAR2)
 AS
-
 BEGIN
     IF check_movie_exists(movie_name) = 0 THEN
 --         raise no data found
@@ -444,15 +445,14 @@ BEGIN
         raise_application_error(-20001, 'Actor not found');
     END IF;
 
-  IF check_actor_movie_exists(actor_name, movie_name) THEN
-    DBMS_OUTPUT.PUT_LINE('Actor already exists in movie');
-  ELSE
+  IF check_actor_movie_exists(actor_name, movie_name) = 1 THEN
+        raise_application_error(-20001, 'Actor already exists in movie');
+    ELSE
     INSERT INTO NETFLIX_MOVIE_ACTORS (MOVIEID, ACTORID)
     VALUES ((SELECT MOVIEID FROM NETFLIX_MOVIE WHERE title = movie_name), (SELECT ACTORID FROM NETFLIX_ACTOR WHERE name = actor_name));
     DBMS_OUTPUT.PUT_LINE('Actor inserted into movie');
   END IF;
 END;
-
 
 CREATE OR REPLACE FUNCTION check_movie_exists (movie_name IN VARCHAR2)
 RETURN NUMBER
@@ -485,3 +485,226 @@ IS
           SELECT COUNT(*) INTO actor_movie_exists FROM netflix_movie_actors WHERE movieid = (SELECT movieid FROM netflix_movie WHERE title = movie_name) AND actorid = (SELECT actorid FROM netflix_actor WHERE name = actor_name) AND ROWNUM = 1;
           RETURN actor_movie_exists;
       END;
+
+-- test the check_movie_exists function
+SELECT check_movie_exists('The Godfather') FROM DUAL;
+SELECT check_movie_exists('The Matrix 2') FROM DUAL;
+
+
+-- test the check_actor_exists function
+SELECT check_actor_exists('Robert De Niro') FROM DUAL;
+
+SELECT * FROM NETFLIX_ACTOR WHERE NAME = 'Robert De Niro';
+SELECT * FROM NETFLIX_MOVIE WHERE TITLE = 'The Godfather';
+
+SELECT check_actor_movie_exists('Robert De Niro', 'The Godfather') FROM DUAL;
+
+
+-- call insert_actor_to_movie procedure
+BEGIN
+    insert_actor_to_movie('Robert De Niro', 'The Godfather');
+END;
+
+
+-- create a procedure to add an actor
+CREATE OR REPLACE PROCEDURE add_actor (actor_name IN VARCHAR2, gender_arg IN VARCHAR2, age_arg IN NUMBER)
+AS
+BEGIN
+    IF check_actor_exists(actor_name) = 0 THEN
+        INSERT INTO NETFLIX_ACTOR (actorid, name, gender, age) VALUES (actor_seq.nextval, actor_name, gender_arg, age_arg);
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'Actor already exists');
+    END IF;
+end;
+
+-- call add_actor procedure
+BEGIN
+    add_actor('Robert De Niro', 'Male', 75);
+END;
+
+
+-- create a procedure to add a movie
+CREATE OR REPLACE PROCEDURE add_movie (movie_name IN VARCHAR2, rating_arg IN NUMBER, languageId_arg IN NUMBER)
+AS
+BEGIN
+    IF check_movie_exists(movie_name) = 0 THEN
+        INSERT INTO NETFLIX_MOVIE (movieid, title, rating, languageId) VALUES (movie_seq.nextval, movie_name, rating_arg, languageId_arg);
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'Movie already exists');
+    END IF;
+end;
+
+
+-- call add_movie procedure
+BEGIN
+    add_movie('The Godfather II', 9.2, 1);
+END;
+
+
+-- create a function to check if a tvshow exists
+CREATE OR REPLACE FUNCTION check_tvshow_exists (tvshow_name IN VARCHAR2)
+RETURN NUMBER
+IS
+  tvshow_exists NUMBER;
+BEGIN
+          SELECT COUNT(*) INTO tvshow_exists FROM netflix_tvshow WHERE netflix_tvshow.TVShowName = tvshow_name AND ROWNUM = 1;
+          RETURN tvshow_exists;
+END;
+
+-- create a procedure to add a tvshow
+CREATE OR REPLACE PROCEDURE add_tvshow (tvshow_name IN VARCHAR2, description IN VARCHAR2)
+AS
+BEGIN
+    IF check_tvshow_exists(tvshow_name) = 0 THEN
+        INSERT INTO NETFLIX_TVSHOW (tvshowid, TVSHOWNAME, TVSHOWDESCRIPTION) VALUES (tvshow_id_seq.nextval, tvshow_name, description);
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'TV Show already exists');
+    END IF;
+end;
+
+
+-- call add_tvshow procedure
+BEGIN
+    add_tvshow('Hells Kitchen II', 'A cooking show');
+END;
+
+
+-- create a function to check if a tvshow episode exists
+CREATE OR REPLACE FUNCTION check_tvshow_episode_exists (tvshow_name IN VARCHAR2, episode_number IN NUMBER)
+RETURN NUMBER
+IS
+  tvshow_episode_exists NUMBER;
+BEGIN
+          SELECT COUNT(*) INTO tvshow_episode_exists FROM NETFLIX_EPISODES WHERE NETFLIX_EPISODES.TVShowID = (SELECT tvshowid FROM netflix_tvshow WHERE TVShowName = tvshow_name) AND NETFLIX_EPISODES.EpisodeId = episode_number AND ROWNUM = 1;
+          RETURN tvshow_episode_exists;
+END;
+
+-- create a procedure to add a tvshow episode
+CREATE OR REPLACE PROCEDURE add_tvshow_episode (tvshow_name IN VARCHAR2, episode_number IN Number, episode_description IN VARCHAR2, season_number IN Number)
+AS
+        tvshow_id NUMBER;
+BEGIN
+    IF check_tvshow_exists(tvshow_name) = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'TV Show does not exist');
+    ELSE
+        IF check_tvshow_episode_exists(tvshow_name, episode_number) = 0 THEN
+            SELECT tvshowid INTO tvshow_id FROM netflix_tvshow WHERE TVShowName = tvshow_name;
+            INSERT INTO NETFLIX_EPISODES (episodeid, tvshowid, SEASONNUMBER, episodedescription) VALUES (episode_number, TVSHOW_id, season_number, episode_description);
+        ELSE
+            RAISE_APPLICATION_ERROR(-20001, 'TV Show Episode already exists');
+        END IF;
+    END IF;
+end;
+
+-- call add_tvshow_episode procedure
+BEGIN
+    add_tvshow_episode('Hells Kitchen', 2, 'A cooking show where Alex gets crazy suddently', 1);
+END;
+
+-- create a function to check if a genre exist
+CREATE OR REPLACE FUNCTION check_genre_exists (genre_name IN VARCHAR2)
+RETURN NUMBER
+IS
+  genre_exists NUMBER;
+BEGIN
+          SELECT COUNT(*) INTO genre_exists FROM netflix_genre WHERE netflix_genre.genrename = genre_name AND ROWNUM = 1;
+          RETURN genre_exists;
+END;
+
+-- create a procedure to add genre to a movie in netflix_movie_genre table
+CREATE OR REPLACE PROCEDURE add_genre_to_movie (movie_name IN VARCHAR2, genre_name IN VARCHAR2)
+AS
+        movie_id NUMBER;
+        genre_id NUMBER;
+BEGIN
+    IF check_movie_exists(movie_name) = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Movie does not exist');
+    ELSE
+        IF check_genre_exists(genre_name) = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Genre does not exist');
+        ELSE
+            SELECT movieid INTO movie_id FROM netflix_movie WHERE title = movie_name;
+            SELECT genreid INTO genre_id FROM netflix_genre WHERE genrename = genre_name;
+            INSERT INTO NETFLIX_MOVIE_GENRE (movieid, genreid) VALUES (movie_id, genre_id);
+        END IF;
+    END IF;
+--     Handle unique constraint violation
+EXCEPTION
+    WHEN DUP_VAL_ON_INDEX THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Genre already exists for this movie');
+end;
+
+
+-- call add_genre_to_movie procedure
+BEGIN
+    add_genre_to_movie('The Godfather', 'Drama');
+END;
+
+-- create a function to check if a tvshow genre exists
+CREATE OR REPLACE FUNCTION check_tvshow_genre_exists (tvshow_id IN NUMBER, genre_id IN NUMBER)
+RETURN NUMBER
+IS
+  tvshow_genre_exists NUMBER;
+BEGIN
+          SELECT COUNT(*) INTO tvshow_genre_exists FROM netflix_tvshow_genre WHERE netflix_tvshow_genre.tvshowid = tvshow_id AND netflix_tvshow_genre.genreid = genre_id AND ROWNUM = 1;
+          RETURN tvshow_genre_exists;
+END;
+
+
+-- create a procedure to add genre to a tvshow in netflix_tvshow_genre table
+CREATE OR REPLACE PROCEDURE add_genre_to_tvshow (tvshow_name IN VARCHAR2, genre_name IN VARCHAR2)
+AS
+        tvshow_id NUMBER;
+        genre_id NUMBER;
+BEGIN
+    IF check_tvshow_exists(tvshow_name) = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'TV Show does not exist');
+    ELSE
+        IF check_genre_exists(genre_name) = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Genre does not exist');
+        ELSE
+            SELECT tvshowid INTO tvshow_id FROM netflix_tvshow WHERE tvshowname = tvshow_name;
+            SELECT genreid INTO genre_id FROM netflix_genre WHERE genrename = genre_name;
+            IF check_tvshow_genre_exists(tvshow_id, genre_id) = 0 THEN
+                INSERT INTO NETFLIX_TVSHOW_GENRE (tvshowid, genreid) VALUES (tvshow_id, genre_id);
+            ELSE
+                RAISE_APPLICATION_ERROR(-20001, 'Genre already exists for this TV Show');
+            END IF;
+        END IF;
+    END IF;
+--     Handle unique constraint violation
+EXCEPTION
+    WHEN DUP_VAL_ON_INDEX THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Genre already exists for this TV Show');
+end;
+
+
+-- call add_genre_to_tvshow procedure
+BEGIN
+    add_genre_to_tvshow('Hells Kitchen', 'Reality');
+END;
+
+
+
+-- create a procedure to add to netflix_genre table
+CREATE OR REPLACE PROCEDURE add_genre (genre_name IN VARCHAR2)
+AS
+BEGIN
+    IF check_genre_exists(genre_name) = 0 THEN
+        INSERT INTO NETFLIX_GENRE (genreid, genrename) VALUES (genre_seq.nextval, genre_name);
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'Genre already exists');
+    END IF;
+end;
+
+-- call check_genre_exists function
+BEGIN
+    DBMS_OUTPUT.PUT_LINE(check_genre_exists('Reality'));
+END;
+
+SELECT * FROM NETFLIX_GENRE;
+
+-- call add_genre procedure
+BEGIN
+    add_genre('Reality');
+END;
